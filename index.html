@@ -3,65 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KCC GLASS 접수</title>
+    <title>KCC GLASS | 실측 접수</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
     <style>
-        body { font-family: 'Pretendard', sans-serif; background-color: #f3f4f6; }
-        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 8px; }
-        .btn-primary { background: #1e3a8a; color: white; width: 100%; padding: 16px; border-radius: 12px; font-weight: bold; }
+        body { font-family: 'Pretendard', sans-serif; background-color: #f3f4f6; color: #1f2937; }
+        
+        /* 입력 필드 디자인 (원래 스타일) */
+        .input-label { display: block; font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.35rem; }
+        .input-field { 
+            width: 100%; padding: 0.8rem; 
+            border: 1px solid #d1d5db; border-radius: 0.75rem; 
+            font-size: 1rem; background-color: #ffffff;
+            transition: all 0.2s;
+        }
+        .input-field:focus { outline: none; border-color: #1e3a8a; ring: 2px; ring-color: #1e3a8a; }
+        
+        /* 숫자 입력 화살표 제거 */
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+
+        /* 애니메이션 */
+        @keyframes fadeInUp { from { opacity: 0; transform: translate3d(0, 15px, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+        .animate-fade-in-up { animation: fadeInUp 0.4s ease-out; }
     </style>
 </head>
-<body class="p-4 pb-20 max-w-md mx-auto">
-    <h1 class="text-xl font-bold mb-6 text-blue-900">KCC GLASS 실측 접수</h1>
+<body class="pb-24">
 
-    <div class="bg-white p-5 rounded-xl shadow-sm mb-4">
-        <h3 class="font-bold mb-3">👤 고객 정보</h3>
-        <input type="text" id="customerName" placeholder="고객 성함">
-        <input type="tel" id="customerPhone" placeholder="연락처 (숫자만)" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
-    </div>
-
-    <div class="bg-white p-5 rounded-xl shadow-sm mb-4">
-        <h3 class="font-bold mb-3">🏠 현장 정보</h3>
-        <div class="flex gap-2 mb-2">
-            <input type="text" id="postcode" placeholder="우편번호" readonly class="bg-gray-50">
-            <button onclick="openPostcode()" class="bg-blue-600 text-white px-4 rounded-lg text-sm font-bold whitespace-nowrap h-[50px]">검색</button>
+    <header class="bg-blue-900 text-white p-5 sticky top-0 z-50 shadow-lg">
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold tracking-tight">KCC GLASS</h1>
+            <span class="text-xs bg-white text-blue-900 px-2 py-1 rounded-full font-bold">간편접수</span>
         </div>
-        <input type="text" id="roadAddress" placeholder="주소 (검색 버튼을 눌러주세요)" readonly class="bg-gray-50" onclick="openPostcode()">
-        <input type="text" id="detailAddress" placeholder="상세주소 입력">
-        
-        <p class="text-sm font-bold mt-2 mb-1">확장 여부</p>
-        <div class="flex gap-2 mb-3">
-            <label class="flex-1"><input type="radio" name="ext" value="확장" checked> 확장</label>
-            <label class="flex-1"><input type="radio" name="ext" value="비확장"> 비확장</label>
+    </header>
+
+    <div class="max-w-md mx-auto p-5 space-y-6">
+
+        <section class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                <span class="bg-blue-100 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center mr-2 text-sm">1</span> 고객 정보
+            </h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="input-label">고객 성함</label>
+                    <input type="text" id="customerName" class="input-field bg-gray-50" placeholder="성함을 입력해주세요">
+                </div>
+                <div>
+                    <label class="input-label">연락처 (숫자만 입력)</label>
+                    <input type="tel" id="customerPhone" class="input-field bg-gray-50" placeholder="01012345678" maxlength="11" inputmode="numeric">
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                <span class="bg-blue-100 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center mr-2 text-sm">2</span> 현장 정보
+            </h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="input-label">현장 주소</label>
+                    <div class="flex gap-2 mb-2">
+                        <input type="text" id="postcode" class="input-field w-1/3 text-center bg-gray-100" placeholder="우편번호" readonly onclick="openPostcode()">
+                        <button onclick="openPostcode()" class="bg-blue-600 text-white px-4 rounded-xl text-sm font-bold hover:bg-blue-700 transition w-2/3 shadow-md">
+                            🔍 주소 검색
+                        </button>
+                    </div>
+                    <input type="text" id="roadAddress" class="input-field mb-2 bg-gray-100" placeholder="주소 (자동 입력)" readonly onclick="openPostcode()">
+                    <input type="text" id="detailAddress" class="input-field" placeholder="상세주소 (예: 101동 102호)">
+                </div>
+
+                <div>
+                    <label class="input-label">베란다 확장 여부</label>
+                    <div class="flex gap-2">
+                        <label class="flex-1 cursor-pointer">
+                            <input type="radio" name="extension" value="확장" class="peer hidden" checked>
+                            <div class="p-3 text-center border-2 border-gray-200 rounded-xl peer-checked:border-blue-600 peer-checked:bg-blue-50 peer-checked:text-blue-700 font-bold transition">확장됨</div>
+                        </label>
+                        <label class="flex-1 cursor-pointer">
+                            <input type="radio" name="extension" value="비확장" class="peer hidden">
+                            <div class="p-3 text-center border-2 border-gray-200 rounded-xl peer-checked:border-blue-600 peer-checked:bg-blue-50 peer-checked:text-blue-700 font-bold transition">확장 안 함</div>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="input-label">특이사항 (메모)</label>
+                    <textarea id="memo" class="input-field h-24 resize-none" placeholder="예: 사다리차 불가, 거주중 시공 등"></textarea>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <div class="flex justify-between items-end mb-3 px-2">
+                <h2 class="text-lg font-bold text-gray-800 flex items-center">
+                    <span class="bg-blue-100 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center mr-2 text-sm">3</span> 시공 위치
+                </h2>
+            </div>
+            
+            <div id="windowList" class="space-y-4"></div>
+
+            <button onclick="addWindowArea()" class="w-full mt-5 py-4 border-2 border-dashed border-blue-300 text-blue-600 rounded-2xl font-bold hover:bg-blue-50 transition flex justify-center items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                창호 추가하기
+            </button>
+        </section>
+
+        <div class="pt-6">
+            <button onclick="submitData()" class="w-full bg-gradient-to-r from-blue-900 to-blue-800 text-white py-4 rounded-2xl text-lg font-bold shadow-xl active:scale-95 transition transform flex justify-center items-center gap-2">
+                <span>견적 요청하기</span>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
+            </button>
+            <p class="text-center text-xs text-gray-400 mt-3">제출 시 개인정보 수집에 동의하는 것으로 간주합니다.</p>
         </div>
-        <textarea id="memo" placeholder="특이사항 메모" class="h-20"></textarea>
+
     </div>
 
-    <div class="bg-white p-5 rounded-xl shadow-sm mb-4">
-        <h3 class="font-bold mb-3">🪟 창호 사이즈</h3>
-        <div id="windowList" class="space-y-4"></div>
-        <button onclick="addWindow()" class="w-full py-3 border-2 border-dashed border-blue-300 text-blue-600 rounded-xl font-bold mt-4">+ 창호 추가</button>
+    <div id="loading" class="hidden fixed inset-0 bg-black/60 z-50 flex flex-col justify-center items-center text-white backdrop-blur-sm">
+        <div class="animate-spin rounded-full h-12 w-12 border-4 border-white/30 border-t-white mb-4"></div>
+        <p class="font-bold text-lg">데이터 전송 중...</p>
     </div>
-
-    <button onclick="submitData()" class="btn-primary shadow-lg">견적 요청하기</button>
-
-    <div id="loading" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center text-white font-bold">전송 중...</div>
 
     <script>
-        // ▼▼▼ 여기에 URL 붙여넣기 ▼▼▼
+        // ★★★ 배포된 Apps Script URL을 여기에 넣으세요 ★★★
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwjmu1V8U7qdtGq-o6Qed23SdNAUvGQ8udLKo5BOmgz1DLu7uOHGHUv7K_-3MvtEpKR/exec"; 
 
-        const locs = ["거실 베란다(외창)","거실 분합문","안방 베란다(외창)","안방 내창(단창)","안방 내창(이중창)","작은방1(외창)","작은방1(내창)","작은방2(외창)","작은방2(내창)","주방 베란다(외창)","주방 베란다(내창)","주방 터닝도어","거실 터닝도어","기타(직접입력)"];
+        const locationOptions = ["거실 베란다(외창)", "거실 분합문", "안방 베란다(외창)", "안방 내창(단창)", "안방 내창(이중창)", "작은방1(외창)", "작은방1(내창)", "작은방2(외창)", "작은방2(내창)", "주방 베란다(외창)", "주방 베란다(내창)", "주방 터닝도어", "거실 터닝도어", "기타(직접입력)"];
 
-        window.onload = addWindow;
+        window.onload = function() { addWindowArea(); };
 
+        // [기능] 숫자만 입력되도록 강제
+        document.getElementById('customerPhone').addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+
+        // [기능] 카카오 주소 검색
         function openPostcode() {
             new daum.Postcode({
                 oncomplete: function(data) {
                     let addr = data.userSelectedType === 'R' ? data.roadAddress : data.jibunAddress;
-                    if(data.buildingName && data.userSelectedType === 'R') addr += ' (' + data.buildingName + ')';
+                    if(data.buildingName !== '' && data.userSelectedType === 'R') addr += ' (' + data.buildingName + ')';
                     document.getElementById('postcode').value = data.zonecode;
                     document.getElementById('roadAddress').value = addr;
                     document.getElementById('detailAddress').focus();
@@ -69,65 +151,81 @@
             }).open();
         }
 
-        function addWindow() {
+        function addWindowArea() {
+            const container = document.getElementById('windowList');
             const id = Date.now();
-            const opts = locs.map(l => `<option value="${l}">${l}</option>`).join('');
+            const optionsHtml = locationOptions.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+
             const html = `
-                <div class="border p-3 rounded-lg relative bg-gray-50 win-card" id="card-${id}">
-                    <button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-red-500 font-bold">X</button>
-                    <select class="mb-2 loc-select" onchange="toggleEtc('${id}', this.value)">${opts}</select>
-                    <input type="text" id="etc-${id}" class="hidden mb-2" placeholder="위치 직접 입력">
-                    <div class="flex gap-2">
-                        <input type="number" class="w-input" placeholder="가로(mm)">
-                        <input type="number" class="h-input" placeholder="세로(mm)">
+                <div class="window-card bg-white p-5 rounded-2xl shadow-sm relative animate-fade-in-up border border-gray-100" id="card-${id}">
+                    <button onclick="removeWindowArea('${id}')" class="absolute top-3 right-3 text-gray-300 hover:text-red-500 p-2 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                    <div class="mb-4">
+                        <label class="input-label text-blue-800">📍 위치 선택</label>
+                        <select class="input-field bg-white loc-select" onchange="toggleEtcInput('${id}', this.value)">${optionsHtml}</select>
+                        <input type="text" id="etc-${id}" class="input-field mt-2 hidden" placeholder="위치 직접 입력">
                     </div>
-                    <input type="file" accept="image/*" class="photo-input text-sm">
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div><label class="input-label">가로 (mm)</label><input type="number" pattern="\\d*" inputmode="numeric" class="input-field width-input" placeholder="0"></div>
+                        <div><label class="input-label">세로 (mm)</label><input type="number" pattern="\\d*" inputmode="numeric" class="input-field height-input" placeholder="0"></div>
+                    </div>
+                    <div>
+                        <label class="input-label flex justify-between items-center"><span>📸 현장 사진</span><span class="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded">선택사항</span></label>
+                        <input type="file" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 photo-input mt-1 border border-gray-200 rounded-lg cursor-pointer"/>
+                    </div>
                 </div>`;
-            document.getElementById('windowList').insertAdjacentHTML('beforeend', html);
+            container.insertAdjacentHTML('beforeend', html);
         }
 
-        function toggleEtc(id, val) {
-            const el = document.getElementById(`etc-${id}`);
-            val === "기타(직접입력)" ? el.classList.remove('hidden') : el.classList.add('hidden');
+        function toggleEtcInput(id, value) {
+            const etcInput = document.getElementById(`etc-${id}`);
+            if (value === "기타(직접입력)") { etcInput.classList.remove('hidden'); etcInput.focus(); }
+            else { etcInput.classList.add('hidden'); etcInput.value = ""; }
+        }
+
+        function removeWindowArea(id) {
+            const card = document.getElementById(`card-${id}`);
+            if(document.querySelectorAll('.window-card').length === 1) return alert("최소 1개의 정보는 필요합니다.");
+            if(confirm("삭제하시겠습니까?")) card.remove();
         }
 
         async function submitData() {
-            if(APPS_SCRIPT_URL.includes("여기에")) return alert("URL을 설정해주세요.");
-            
             const name = document.getElementById('customerName').value;
             const phone = document.getElementById('customerPhone').value;
-            const addr = document.getElementById('roadAddress').value;
-            if(!name || !phone || !addr) return alert("필수 정보를 입력해주세요.");
+            const addr = document.getElementById('roadAddress').value + " " + document.getElementById('detailAddress').value;
+
+            if(!name) return alert("성함을 입력해주세요.");
+            if(!phone || phone.length < 9) return alert("올바른 연락처를 입력해주세요.");
+            if(document.getElementById('roadAddress').value === "") return alert("주소를 검색해주세요.");
+
+            if(APPS_SCRIPT_URL.includes("여기에")) return alert("서버 URL을 설정해주세요.");
 
             document.getElementById('loading').classList.remove('hidden');
 
-            const wins = [];
-            for (const card of document.querySelectorAll('.win-card')) {
+            const windowCards = document.querySelectorAll('.window-card');
+            const windowsData = [];
+            
+            for (const card of windowCards) {
                 let loc = card.querySelector('.loc-select').value;
-                if(loc.includes("기타")) loc = card.querySelector('input[id^="etc"]').value;
-                
+                if(loc.includes("기타")) loc = card.querySelector(`input[id^="etc"]`).value;
+                if(!loc) { alert("위치를 입력해주세요."); document.getElementById('loading').classList.add('hidden'); return; }
+
                 const file = card.querySelector('.photo-input').files[0];
                 let pData = null, pName = null, pType = null;
-                
                 if(file) {
-                    pData = await new Promise(r => { const rd=new FileReader(); rd.onload=()=>r(rd.result); rd.readAsDataURL(file); });
+                    pData = await new Promise(r => {const rd=new FileReader(); rd.onload=()=>r(rd.result); rd.readAsDataURL(file);});
                     pName = file.name; pType = file.type;
                 }
-
-                wins.push({
-                    location: loc, 
-                    width: card.querySelector('.w-input').value, 
-                    height: card.querySelector('.h-input').value,
+                windowsData.push({
+                    location: loc, width: card.querySelector('.width-input').value, height: card.querySelector('.height-input').value,
                     photoData: pData, photoName: pName, photoMimeType: pType
                 });
             }
 
             const payload = {
-                customerName: name, customerPhone: phone, 
-                address: addr + " " + document.getElementById('detailAddress').value,
-                extension: document.querySelector('input[name="ext"]:checked').value,
+                customerName: name, customerPhone: phone, address: addr,
+                extension: document.querySelector('input[name="extension"]:checked').value,
                 memo: document.getElementById('memo').value,
-                windows: wins
+                windows: windowsData
             };
 
             fetch(APPS_SCRIPT_URL, {
