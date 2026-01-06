@@ -7,93 +7,54 @@
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
     <style>
         body { font-family: 'Pretendard', sans-serif; overflow: hidden; user-select: none; }
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        
-        /* 캔버스 컨트롤러 스타일 */
-        .canvas-btn {
-            @apply bg-white text-gray-700 p-2 rounded shadow border hover:bg-gray-50 active:bg-gray-100 transition;
-        }
+        .canvas-btn { @apply bg-white text-gray-700 p-2 rounded shadow border hover:bg-gray-50 active:bg-gray-100 transition; }
     </style>
 </head>
 <body class="bg-gray-100 h-screen flex flex-col">
 
     <header class="bg-slate-900 text-white h-14 flex items-center justify-between px-6 shadow-md z-20">
-        <div class="flex items-center gap-3">
-            <h1 class="text-lg font-bold tracking-wider">KCC GLASS | 도면 설계 Pro</h1>
-        </div>
+        <h1 class="text-lg font-bold tracking-wider">KCC GLASS | 도면 설계 Pro</h1>
         <div class="flex gap-3">
-            <button onclick="loadData()" class="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded text-xs font-bold transition flex items-center gap-2">
-                <span>🔄 접수현황 새로고침</span>
-            </button>
-            <button onclick="downloadImage()" class="bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 rounded text-xs font-bold transition flex items-center gap-2">
-                <span>💾 설계도면 저장</span>
-            </button>
+            <button onclick="loadData()" class="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded text-xs font-bold transition flex items-center gap-2">🔄 데이터 새로고침</button>
+            <button onclick="downloadImage()" class="bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 rounded text-xs font-bold transition flex items-center gap-2">💾 도면 저장</button>
         </div>
     </header>
 
     <div class="flex flex-1 overflow-hidden">
-        
-        <div class="w-72 bg-white border-r flex flex-col z-10 shadow-xl">
-            <div class="p-4 border-b bg-gray-50">
-                <h2 class="font-bold text-gray-800">📋 대기중인 고객</h2>
-            </div>
+        <div class="w-80 bg-white border-r flex flex-col z-10 shadow-xl">
+            <div class="p-4 border-b bg-gray-50"><h2 class="font-bold text-gray-800">📋 고객 접수 현황</h2></div>
             <div id="customerList" class="flex-1 overflow-y-auto p-2 space-y-2 bg-gray-50">
                 <div class="text-center text-gray-400 mt-10 text-xs">데이터 로딩 필요</div>
             </div>
-            
             <div class="p-4 border-t bg-white">
-                <label class="block text-xs font-bold text-gray-700 mb-2"> 배경 도면 업로드</label>
+                <label class="block text-xs font-bold text-gray-700 mb-2">도면 이미지 업로드</label>
                 <input type="file" id="bgUpload" accept="image/*" class="block w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded border file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"/>
-                <p class="text-[10px] text-gray-400 mt-2">* 마우스 휠: 확대/축소 <br>* 바탕 드래그: 도면 이동</p>
             </div>
         </div>
 
         <div class="flex-1 bg-gray-200 relative overflow-hidden flex items-center justify-center">
-            
             <canvas id="canvas" class="bg-gray-300 shadow-2xl cursor-crosshair"></canvas>
-
             <div class="absolute bottom-6 right-6 flex flex-col gap-2">
-                <button onclick="resetView()" class="canvas-btn" title="화면 초기화">↺</button>
-                <button onclick="zoom(0.1)" class="canvas-btn" title="확대">➕</button>
-                <button onclick="zoom(-0.1)" class="canvas-btn" title="축소">➖</button>
+                <button onclick="resetView()" class="canvas-btn">↺</button>
+                <button onclick="zoom(0.1)" class="canvas-btn">➕</button>
+                <button onclick="zoom(-0.1)" class="canvas-btn">➖</button>
             </div>
-
             <div id="placeholder" class="absolute pointer-events-none text-center opacity-50">
-                <p class="text-4xl mb-2">🏗️</p>
-                <p class="font-bold text-gray-600">도면 이미지를 업로드해주세요</p>
+                <p class="text-4xl mb-2">🏗️</p><p class="font-bold text-gray-600">도면 이미지를 업로드해주세요</p>
             </div>
         </div>
     </div>
 
     <script>
-        // ==========================================
-        // ★ 설정: 배포된 Apps Script URL 입력 ★
-        // ==========================================
+        // ★ 배포된 Apps Script URL 입력 ★
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwvrgTOG_An2BzvDyu-YWTnfC69KO7okJ8od2sfCS0-2wyeg364AGcsFQcTbhvKHPV7eg/exec"; 
         
-        // ------------------------------------------
-
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
+        let customers = {}, items = [], bgImage = new Image(), isBgLoaded = false;
+        let scale = 1, panX = 0, panY = 0;
+        let dragTarget = null, selectedItemIndex = -1, lastMouseX, lastMouseY;
 
-        // 상태 변수
-        let customers = {};
-        let items = []; // 현재 작업 중인 마커들 {dotX, dotY, boxX, boxY, ...}
-        let bgImage = new Image();
-        let isBgLoaded = false;
-
-        // 뷰포트 상태 (Zoom/Pan)
-        let scale = 1;
-        let panX = 0;
-        let panY = 0;
-        
-        // 드래그 상태
-        let isDraggingMap = false;
-        let dragTarget = null; // 'map', 'dot', 'box'
-        let selectedItemIndex = -1;
-        let lastMouseX, lastMouseY;
-
-        // 캔버스 크기 전체화면 설정
         function resizeCanvas() {
             canvas.width = canvas.parentElement.clientWidth;
             canvas.height = canvas.parentElement.clientHeight;
@@ -102,47 +63,46 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // ==========================================
-        // 1. 데이터 로드 및 리스트 처리
-        // ==========================================
-        function loadData() {
-            const listContainer = document.getElementById('customerList');
-            listContainer.innerHTML = '<div class="text-center py-4"><div class="animate-spin inline-block w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full"></div></div>';
+        // [기능] 전화번호 하이픈 포맷팅 함수
+        function formatPhoneNumber(str) {
+            if (!str) return "";
+            return str.replace(/^(\d{2,3})(\d{3,4})(\d{4})$/, `$1-$2-$3`);
+        }
 
+        function loadData() {
+            const list = document.getElementById('customerList');
+            list.innerHTML = '<div class="text-center py-4"><div class="animate-spin inline-block w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full"></div></div>';
+            
             fetch(`${APPS_SCRIPT_URL}?op=read`)
                 .then(res => res.json())
-                .then(data => {
-                    customers = data;
-                    renderCustomerList();
-                })
-                .catch(err => {
-                    alert("데이터 로드 실패");
-                    listContainer.innerHTML = '<p class="text-center text-red-500 text-xs mt-4">연결 실패</p>';
-                });
+                .then(data => { customers = data; renderCustomerList(); })
+                .catch(err => { list.innerHTML = '<p class="text-center text-red-500 text-xs mt-4">데이터 로드 실패</p>'; });
         }
 
         function renderCustomerList() {
             const container = document.getElementById('customerList');
             container.innerHTML = "";
             const ids = Object.keys(customers).sort().reverse();
-
-            if(ids.length === 0) {
-                container.innerHTML = '<p class="text-center text-gray-400 text-xs mt-4">데이터 없음</p>';
-                return;
-            }
+            if(ids.length === 0) { container.innerHTML = '<p class="text-center text-gray-400 text-xs mt-4">데이터 없음</p>'; return; }
 
             ids.forEach(id => {
                 const c = customers[id];
+                // 여기서 전화번호 포맷팅 적용
+                const formattedPhone = formatPhoneNumber(c.phone);
+
                 const div = document.createElement('div');
                 div.className = "p-3 mb-2 bg-white border rounded hover:border-blue-500 cursor-pointer shadow-sm transition group";
                 div.onclick = () => loadCustomerToCanvas(id);
                 div.innerHTML = `
                     <div class="flex justify-between items-center mb-1">
                         <span class="font-bold text-sm text-gray-800">${c.name}</span>
-                        <span class="text-[10px] text-gray-400">${new Date(c.timestamp).toLocaleDateString()}</span>
+                        <span class="text-[10px] text-gray-500">${formattedPhone}</span>
                     </div>
-                    <div class="text-xs text-gray-500 truncate">${c.address}</div>
-                    <div class="mt-1 text-[10px] text-blue-600 font-bold">창호 ${c.windows.length}개</div>
+                    <div class="text-xs text-gray-500 truncate mb-1">📍 ${c.address}</div>
+                    <div class="flex justify-between items-end">
+                        <span class="text-[10px] text-gray-400">${new Date(c.timestamp).toLocaleDateString()}</span>
+                        <span class="text-[10px] text-blue-600 font-bold bg-blue-50 px-1.5 py-0.5 rounded">창호 ${c.windows.length}개</span>
+                    </div>
                 `;
                 container.appendChild(div);
             });
@@ -150,269 +110,75 @@
 
         function loadCustomerToCanvas(id) {
             const data = customers[id];
-            
-            // 아이템 초기화
-            // dotX, dotY: 이미지 기준 좌표 (Zoom시 따라다님)
-            // boxX, boxY: 캔버스 기준 좌표 (화면에 고정된 느낌으로 시작하되 드래그 가능)
             items = data.windows.map((win, idx) => ({
-                id: idx,
-                location: win.location,
-                size: `${win.width} x ${win.height}`,
-                // 초기 위치: 점은 이미지 중앙, 박스는 우측에 나열
-                dotX: isBgLoaded ? bgImage.width / 2 : 400,
-                dotY: isBgLoaded ? bgImage.height / 2 : 300,
-                boxX: 50 + (idx % 3) * 220, // 화면 좌측 상단부터 배치
-                boxY: 50 + Math.floor(idx / 3) * 100,
-                boxW: 200, boxH: 70,
-                color: "#1e3a8a"
+                id: idx, location: win.location, size: `${win.width} x ${win.height}`,
+                dotX: isBgLoaded ? bgImage.width / 2 : 400, dotY: isBgLoaded ? bgImage.height / 2 : 300,
+                boxX: 50 + (idx % 3) * 220, boxY: 50 + Math.floor(idx / 3) * 100, boxW: 200, boxH: 70, color: "#1e3a8a"
             }));
-            
-            alert(`[${data.name}] 고객님 데이터를 불러왔습니다.\n1. 빨간 점을 도면 위 창호 위치로 옮기세요.\n2. 설명 박스를 보기 좋은 곳으로 정리하세요.`);
+            alert(`[${data.name}] 님 데이터를 불러왔습니다.\n도면 위에 빨간 점을 배치하세요.`);
             draw();
         }
 
-        // ==========================================
-        // 2. 도면 업로드 및 제어
-        // ==========================================
         document.getElementById('bgUpload').addEventListener('change', (e) => {
             const reader = new FileReader();
             reader.onload = (evt) => {
                 bgImage.src = evt.target.result;
-                bgImage.onload = () => {
-                    isBgLoaded = true;
-                    document.getElementById('placeholder').style.display = 'none';
-                    // 이미지 로드 시 뷰 리셋 (중앙 정렬)
-                    resetView();
-                }
+                bgImage.onload = () => { isBgLoaded = true; document.getElementById('placeholder').style.display = 'none'; resetView(); }
             }
             reader.readAsDataURL(e.target.files[0]);
         });
 
-        function resetView() {
-            scale = 1;
-            // 이미지가 있으면 화면 중앙에 오도록 pan 설정
-            if(isBgLoaded) {
-                panX = (canvas.width - bgImage.width) / 2;
-                panY = (canvas.height - bgImage.height) / 2;
-            } else {
-                panX = 0; panY = 0;
-            }
-            draw();
-        }
+        function resetView() { scale = 1; panX = isBgLoaded ? (canvas.width - bgImage.width) / 2 : 0; panY = isBgLoaded ? (canvas.height - bgImage.height) / 2 : 0; draw(); }
+        function zoom(amt) { const newScale = Math.max(0.2, Math.min(5, scale + amt)); const cx = canvas.width/2, cy = canvas.height/2; panX = cx - (cx - panX)*(newScale/scale); panY = cy - (cy - panY)*(newScale/scale); scale = newScale; draw(); }
 
-        function zoom(amount) {
-            const newScale = scale + amount;
-            if(newScale > 0.1 && newScale < 5) {
-                // 화면 중앙 기준으로 줌
-                const centerX = canvas.width / 2;
-                const centerY = canvas.height / 2;
-                panX = centerX - (centerX - panX) * (newScale / scale);
-                panY = centerY - (centerY - panY) * (newScale / scale);
-                scale = newScale;
-                draw();
-            }
-        }
-
-        // ==========================================
-        // 3. 그리기 엔진 (핵심)
-        // ==========================================
         function draw() {
-            // 화면 클리어
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "#e5e7eb"; // 배경색
-            ctx.fillRect(0,0, canvas.width, canvas.height);
-
-            // 1) 도면 그리기 (Zoom/Pan 적용)
-            ctx.save();
-            ctx.translate(panX, panY);
-            ctx.scale(scale, scale);
-
-            if (isBgLoaded) {
-                // 그림자 효과
-                ctx.shadowColor = "rgba(0,0,0,0.2)";
-                ctx.shadowBlur = 20;
-                ctx.drawImage(bgImage, 0, 0);
-                ctx.shadowBlur = 0; // 리셋
-            }
+            ctx.fillStyle = "#e5e7eb"; ctx.fillRect(0,0, canvas.width, canvas.height);
             
-            // 2) 도면 위의 '점(Anchor)' 그리기
-            // 점은 도면 좌표계(transformed)를 따름
-            items.forEach(item => {
-                ctx.beginPath();
-                ctx.arc(item.dotX, item.dotY, 8 / scale, 0, Math.PI * 2); // 줌아웃해도 점 크기는 일정하게 보이도록 보정
-                ctx.fillStyle = "rgba(239, 68, 68, 0.9)"; // Red Color
-                ctx.fill();
-                ctx.strokeStyle = "white";
-                ctx.lineWidth = 2 / scale;
-                ctx.stroke();
-            });
+            ctx.save(); ctx.translate(panX, panY); ctx.scale(scale, scale);
+            if (isBgLoaded) { ctx.shadowColor = "rgba(0,0,0,0.2)"; ctx.shadowBlur = 20; ctx.drawImage(bgImage, 0, 0); ctx.shadowBlur = 0; }
+            items.forEach(it => { ctx.beginPath(); ctx.arc(it.dotX, it.dotY, 8/scale, 0, Math.PI*2); ctx.fillStyle = "rgba(239, 68, 68, 0.9)"; ctx.fill(); ctx.strokeStyle = "white"; ctx.lineWidth = 2/scale; ctx.stroke(); });
+            ctx.restore();
 
-            ctx.restore(); // 좌표계 복구 (이제부터 화면 좌표계)
-
-            // 3) 연결선 및 박스 그리기
-            items.forEach(item => {
-                // 점의 현재 화면상 위치 계산
-                const dotScreenX = item.dotX * scale + panX;
-                const dotScreenY = item.dotY * scale + panY;
-
-                // 연결선 그리기 (점 -> 박스 중앙)
-                ctx.beginPath();
-                ctx.moveTo(dotScreenX, dotScreenY);
-                ctx.lineTo(item.boxX + item.boxW/2, item.boxY + item.boxH/2);
-                ctx.strokeStyle = item.color;
-                ctx.lineWidth = 2;
-                ctx.setLineDash([5, 3]); // 점선 효과
-                ctx.stroke();
-                ctx.setLineDash([]); // 실선 복구
-
-                // 박스 그리기
-                // 그림자
-                ctx.shadowColor = "rgba(0,0,0,0.2)";
-                ctx.shadowBlur = 6;
-                ctx.shadowOffsetY = 3;
-
-                ctx.fillStyle = "white";
-                ctx.beginPath();
-                ctx.roundRect(item.boxX, item.boxY, item.boxW, item.boxH, 8);
-                ctx.fill();
+            items.forEach(it => {
+                const dx = it.dotX * scale + panX, dy = it.dotY * scale + panY;
+                ctx.beginPath(); ctx.moveTo(dx, dy); ctx.lineTo(it.boxX + it.boxW/2, it.boxY + it.boxH/2);
+                ctx.strokeStyle = it.color; ctx.lineWidth = 2; ctx.setLineDash([5, 3]); ctx.stroke(); ctx.setLineDash([]);
                 
-                // 박스 테두리 (선택 시 강조)
-                ctx.shadowColor = "transparent";
-                ctx.lineWidth = 2;
-                ctx.strokeStyle = (selectedItemIndex === item.id) ? "#ef4444" : item.color;
-                ctx.stroke();
-
-                // 텍스트
-                ctx.fillStyle = item.color;
-                ctx.font = "bold 14px Pretendard";
-                ctx.fillText(item.location, item.boxX + 12, item.boxY + 25);
+                ctx.shadowColor = "rgba(0,0,0,0.2)"; ctx.shadowBlur = 6; ctx.shadowOffsetY = 3;
+                ctx.fillStyle = "white"; ctx.beginPath(); ctx.roundRect(it.boxX, it.boxY, it.boxW, it.boxH, 8); ctx.fill();
+                ctx.shadowColor = "transparent"; ctx.lineWidth = 2; ctx.strokeStyle = (selectedItemIndex === it.id) ? "#ef4444" : it.color; ctx.stroke();
                 
-                ctx.fillStyle = "#6b7280";
-                ctx.font = "12px Pretendard";
-                ctx.fillText(item.size, item.boxX + 12, item.boxY + 45);
+                ctx.fillStyle = it.color; ctx.font = "bold 14px Pretendard"; ctx.fillText(it.location, it.boxX + 12, it.boxY + 25);
+                ctx.fillStyle = "#6b7280"; ctx.font = "12px Pretendard"; ctx.fillText(it.size, it.boxX + 12, it.boxY + 45);
             });
-
-            // 4) 워터마크
-            drawWatermark();
+            ctx.fillStyle = "rgba(30, 58, 138, 0.8)"; ctx.font = "bold 16px Pretendard"; ctx.fillText("KCC GLASS | SMART PLAN", 20, canvas.height - 20);
         }
 
-        function drawWatermark() {
-            ctx.fillStyle = "rgba(30, 58, 138, 0.8)";
-            ctx.font = "bold 16px Pretendard";
-            ctx.fillText("KCC GLASS | SMART PLAN", 20, canvas.height - 20);
-        }
-
-        // ==========================================
-        // 4. 마우스 인터랙션 (복잡도 높음)
-        // ==========================================
-        
-        // 마우스 좌표 구하기
-        function getMousePos(e) {
-            const rect = canvas.getBoundingClientRect();
-            return {
-                x: e.clientX - rect.left,
-                y: e.clientY - rect.top
-            };
-        }
-
-        // 히트 테스트 (무엇을 클릭했나?)
+        function getMousePos(e) { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
         function hitTest(x, y) {
-            // 1. 박스 확인 (화면 좌표)
-            for (let i = items.length - 1; i >= 0; i--) {
-                const it = items[i];
-                if (x >= it.boxX && x <= it.boxX + it.boxW && y >= it.boxY && y <= it.boxY + it.boxH) {
-                    return { type: 'box', index: i };
-                }
-            }
-            // 2. 점 확인 (화면 좌표로 변환해서 확인)
-            for (let i = items.length - 1; i >= 0; i--) {
-                const it = items[i];
-                const dotSx = it.dotX * scale + panX;
-                const dotSy = it.dotY * scale + panY;
-                const dist = Math.sqrt((x - dotSx)**2 + (y - dotSy)**2);
-                if (dist < 15) { // 점 클릭 반경
-                    return { type: 'dot', index: i };
-                }
-            }
+            for (let i = items.length - 1; i >= 0; i--) { if (x>=items[i].boxX && x<=items[i].boxX+items[i].boxW && y>=items[i].boxY && y<=items[i].boxY+items[i].boxH) return {type:'box', index:i}; }
+            for (let i = items.length - 1; i >= 0; i--) { const dx = items[i].dotX*scale+panX, dy = items[i].dotY*scale+panY; if (Math.sqrt((x-dx)**2+(y-dy)**2)<15) return {type:'dot', index:i}; }
             return null;
         }
 
-        canvas.addEventListener('mousedown', (e) => {
-            const pos = getMousePos(e);
-            const hit = hitTest(pos.x, pos.y);
-            
-            lastMouseX = pos.x;
-            lastMouseY = pos.y;
-
-            if (hit) {
-                // 아이템(점 or 박스) 클릭
-                dragTarget = hit.type;
-                selectedItemIndex = items[hit.index].id; // id로 매칭
-                // 선택된 아이템을 배열 맨 뒤로(화면 맨 위로)
-                const idx = hit.index;
-                items.push(items.splice(idx, 1)[0]);
-            } else {
-                // 빈 공간 클릭 -> 도면 이동(Pan)
-                dragTarget = 'map';
-                selectedItemIndex = -1;
-            }
-            draw();
+        canvas.addEventListener('mousedown', e => {
+            const p = getMousePos(e), hit = hitTest(p.x, p.y); lastMouseX = p.x; lastMouseY = p.y;
+            if (hit) { dragTarget = hit.type; selectedItemIndex = items[hit.index].id; items.push(items.splice(hit.index, 1)[0]); } 
+            else { dragTarget = 'map'; selectedItemIndex = -1; } draw();
         });
-
-        canvas.addEventListener('mousemove', (e) => {
+        canvas.addEventListener('mousemove', e => {
             if (!dragTarget) return;
-            const pos = getMousePos(e);
-            const dx = pos.x - lastMouseX;
-            const dy = pos.y - lastMouseY;
-
-            const currentItem = items[items.length - 1]; // 현재 선택된 건 항상 맨 뒤
-
-            if (dragTarget === 'map') {
-                panX += dx;
-                panY += dy;
-            } else if (dragTarget === 'box') {
-                currentItem.boxX += dx;
-                currentItem.boxY += dy;
-            } else if (dragTarget === 'dot') {
-                // 점은 도면 좌표계로 역변환하여 저장
-                currentItem.dotX += dx / scale;
-                currentItem.dotY += dy / scale;
-            }
-
-            lastMouseX = pos.x;
-            lastMouseY = pos.y;
-            draw();
+            const p = getMousePos(e), dx = p.x - lastMouseX, dy = p.y - lastMouseY; const cur = items[items.length-1];
+            if (dragTarget === 'map') { panX += dx; panY += dy; } else if (dragTarget === 'box') { cur.boxX += dx; cur.boxY += dy; } else if (dragTarget === 'dot') { cur.dotX += dx/scale; cur.dotY += dy/scale; }
+            lastMouseX = p.x; lastMouseY = p.y; draw();
         });
+        canvas.addEventListener('mouseup', () => dragTarget = null);
+        canvas.addEventListener('wheel', e => { e.preventDefault(); zoom(e.deltaY > 0 ? -0.1 : 0.1); }, {passive:false});
 
-        canvas.addEventListener('mouseup', () => { dragTarget = null; });
-        canvas.addEventListener('mouseout', () => { dragTarget = null; });
-
-        // 휠 줌 (마우스 위치 기준 확대)
-        canvas.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            const pos = getMousePos(e);
-            const zoomIntensity = 0.1;
-            const delta = e.deltaY > 0 ? -zoomIntensity : zoomIntensity;
-            const newScale = Math.min(Math.max(0.2, scale + delta), 5); // 0.2배 ~ 5배 제한
-
-            // 마우스 위치 기준으로 줌 계산
-            panX = pos.x - (pos.x - panX) * (newScale / scale);
-            panY = pos.y - (pos.y - panY) * (newScale / scale);
-            scale = newScale;
-            draw();
-        }, { passive: false });
-
-
-        // ==========================================
-        // 5. 이미지 저장
-        // ==========================================
-        function downloadImage() {
-            if(!isBgLoaded && items.length === 0) return alert("저장할 내용이 없습니다.");
-            
-            const link = document.createElement('a');
-            link.download = `KCC_설계도면_${new Date().getTime()}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
+        function downloadImage() { 
+            if(!isBgLoaded && items.length===0) return alert("저장할 내용이 없습니다.");
+            const link = document.createElement('a'); link.download = `KCC_설계도면_${Date.now()}.png`; link.href = canvas.toDataURL(); link.click(); 
         }
     </script>
 </body>
