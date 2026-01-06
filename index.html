@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KCC GLASS | 스마트 실측 접수</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+    <style>
+        /* 기본 폰트 설정 */
+        body { font-family: 'Pretendard', sans-serif; background-color: #f3f4f6; color: #1f2937; }
+        
+        /* 입력 필드 스타일 공통 */
+        .input-label { display: block; font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.35rem; }
+        .input-field { 
+            width: 100%; padding: 0.75rem; 
+            border: 1px solid #d1d5db; border-radius: 0.5rem; 
+            font-size: 1rem; background-color: #ffffff;
+            transition: all 0.2s;
+        }
+        .input-field:focus { outline: none; border-color: #1e3a8a; ring: 2px; ring-color: #1e3a8a; }
+        
+        /* 숫자 입력 시 화살표 제거 (Chrome, Safari, Edge, Opera) */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        /* Firefox */
+        input[type=number] { -moz-appearance: textfield; }
+
+        /* 모바일 터치 최적화 */
+        button, input, select { touch-action: manipulation; }
+
+        /* 애니메이션 */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translate3d(0, 20px, 0); }
+            to { opacity: 1; transform: translate3d(0, 0, 0); }
+        }
+        .animate-fade-in-up { animation: fadeInUp 0.4s ease-out; }
+    </style>
+</head>
+<body class="pb-24">
+
+    <header class="bg-blue-900 text-white p-4 sticky top-0 z-50 shadow-md">
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            <h1 class="text-lg font-bold tracking-tight">KCC GLASS | 실측 접수</h1>
+            <span class="text-xs bg-white text-blue-900 px-2 py-1 rounded font-bold">고객용</span>
+        </div>
+    </header>
+
+    <div class="max-w-md mx-auto p-4 space-y-5">
+
+        <section class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-blue-600">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                <span class="bg-blue-100 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center mr-2 text-sm">1</span>
+                고객 정보
+            </h2>
+            <div class="space-y-3">
+                <div>
+                    <label class="input-label">고객 성함</label>
+                    <input type="text" id="customerName" class="input-field bg-gray-50" placeholder="성함을 입력해주세요">
+                </div>
+                <div>
+                    <label class="input-label">연락처</label>
+                    <input type="tel" id="customerPhone" class="input-field bg-gray-50" placeholder="010-0000-0000" inputmode="numeric">
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-blue-600">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                <span class="bg-blue-100 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center mr-2 text-sm">2</span>
+                현장 정보
+            </h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="input-label">현장 주소</label>
+                    <input type="text" id="address" class="input-field" placeholder="동/호수까지 정확히 입력해주세요">
+                </div>
+
+                <div>
+                    <label class="input-label">베란다 확장 여부</label>
+                    <div class="flex gap-2">
+                        <label class="flex-1 cursor-pointer">
+                            <input type="radio" name="extension" value="확장" class="peer hidden" checked>
+                            <div class="p-3 text-center border rounded-lg peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 text-gray-500 font-medium transition">확장됨</div>
+                        </label>
+                        <label class="flex-1 cursor-pointer">
+                            <input type="radio" name="extension" value="비확장" class="peer hidden">
+                            <div class="p-3 text-center border rounded-lg peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 text-gray-500 font-medium transition">확장 안 함</div>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="input-label">특이사항 (메모)</label>
+                    <textarea id="memo" class="input-field h-24 resize-none" placeholder="예: 사다리차 불가, 엘리베이터 작음, 거주중 시공 등"></textarea>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <div class="flex justify-between items-end mb-3 px-1">
+                <h2 class="text-lg font-bold text-gray-800 flex items-center">
+                    <span class="bg-blue-100 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center mr-2 text-sm">3</span>
+                    시공 위치 및 사이즈
+                </h2>
+            </div>
+            
+            <div id="windowList" class="space-y-4"></div>
+
+            <button onclick="addWindowArea()" class="w-full mt-4 py-3 border-2 border-dashed border-blue-300 text-blue-600 rounded-xl font-bold hover:bg-blue-50 transition flex justify-center items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                창호 추가하기
+            </button>
+        </section>
+
+        <div class="pt-6">
+            <button onclick="submitData()" class="w-full bg-blue-900 text-white py-4 rounded-xl text-lg font-bold shadow-lg active:scale-95 transition transform flex justify-center items-center gap-2">
+                <span>견적 요청하기</span>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
+            </button>
+            <p class="text-center text-xs text-gray-400 mt-3">제출하시면 담당자가 확인 후 연락드립니다.</p>
+        </div>
+
+    </div>
+
+    <div id="loading" class="hidden fixed inset-0 bg-black bg-opacity-60 z-50 flex flex-col justify-center items-center text-white backdrop-blur-sm">
+        <div class="animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-500 mb-4"></div>
+        <p class="font-bold text-lg">데이터 전송 중...</p>
+        <p class="text-sm text-gray-300">사진 용량에 따라 시간이 소요될 수 있습니다.</p>
+    </div>
+
+    <script>
+        // =================================================================
+        // [설정] 구글 앱스 스크립트 배포 URL을 아래 따옴표 안에 넣어주세요
+        // =================================================================
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyqUs88wf40nop6EVoefB6BSpV_SuqWMLaylbipb0i36RdCu1UAd-zZlFp-0m4FekhZ4g/exec"; 
+        
+        // -----------------------------------------------------------------
+
+        // 창호 위치 목록 데이터
+        const locationOptions = [
+            "거실 베란다(외창)", "거실 분합문", 
+            "안방 베란다(외창)", "안방 내창(단창)", "안방 내창(이중창)",
+            "작은방1(외창)", "작은방1(내창)", 
+            "작은방2(외창)", "작은방2(내창)",
+            "주방 베란다(외창)", "주방 베란다(내창)",
+            "주방 터닝도어", "거실 터닝도어", 
+            "기타(직접입력)"
+        ];
+
+        // 페이지 로드 시 첫 번째 카드 자동 추가
+        window.onload = function() {
+            addWindowArea();
+        };
+
+        // 창호 영역 추가 함수
+        function addWindowArea() {
+            const container = document.getElementById('windowList');
+            const id = Date.now(); // 고유 ID
+
+            // 옵션 태그 생성
+            const optionsHtml = locationOptions.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+
+            const html = `
+                <div class="window-card bg-white p-5 rounded-xl shadow-sm relative animate-fade-in-up transition-all border border-gray-100" id="card-${id}">
+                    <button onclick="removeWindowArea('${id}')" class="absolute top-3 right-3 text-gray-400 hover:text-red-500 p-2 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+
+                    <div class="mb-4">
+                        <label class="input-label text-blue-800">📍 위치 선택</label>
+                        <select class="input-field bg-white loc-select" onchange="toggleEtcInput('${id}', this.value)">
+                            ${optionsHtml}
+                        </select>
+                        <input type="text" id="etc-${id}" class="input-field mt-2 hidden" placeholder="예: 다용도실 픽스창">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div>
+                            <label class="input-label">가로 (mm)</label>
+                            <input type="number" pattern="\\d*" inputmode="numeric" class="input-field width-input" placeholder="0">
+                        </div>
+                        <div>
+                            <label class="input-label">세로 (mm)</label>
+                            <input type="number" pattern="\\d*" inputmode="numeric" class="input-field height-input" placeholder="0">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="input-label flex justify-between items-center">
+                            <span>📸 현장 사진</span>
+                            <span class="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded">선택사항</span>
+                        </label>
+                        <input type="file" accept="image/*" class="block w-full text-sm text-gray-500
+                            file:mr-4 file:py-2.5 file:px-4
+                            file:rounded-full file:border-0
+                            file:text-sm file:font-semibold
+                            file:bg-blue-50 file:text-blue-700
+                            hover:file:bg-blue-100 photo-input
+                            mt-1 border border-gray-200 rounded-lg cursor-pointer
+                        "/>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+        }
+
+        // 기타 입력창 토글
+        function toggleEtcInput(id, value) {
+            const etcInput = document.getElementById(`etc-${id}`);
+            if (value === "기타(직접입력)") {
+                etcInput.classList.remove('hidden');
+                etcInput.focus();
+            } else {
+                etcInput.classList.add('hidden');
+                etcInput.value = ""; // 숨길 때 값 초기화
+            }
+        }
+
+        // 영역 삭제
+        function removeWindowArea(id) {
+            const card = document.getElementById(`card-${id}`);
+            if(document.querySelectorAll('.window-card').length === 1) {
+                alert("최소 1개의 창호 정보는 입력해야 합니다.");
+                return;
+            }
+            if(confirm("이 창호 정보를 삭제하시겠습니까?")) {
+                card.remove();
+            }
+        }
+
+        // 이미지 -> Base64 변환 (서버 전송용)
+        const fileToBase64 = file => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+
+        // 데이터 전송 로직
+        async function submitData() {
+            // 1. 필수값 체크
+            const name = document.getElementById('customerName').value;
+            const phone = document.getElementById('customerPhone').value;
+            const address = document.getElementById('address').value;
+
+            if(!name) { alert("고객 성함을 입력해주세요."); document.getElementById('customerName').focus(); return; }
+            if(!phone) { alert("연락처를 입력해주세요."); document.getElementById('customerPhone').focus(); return; }
+            if(!address) { alert("현장 주소를 입력해주세요."); document.getElementById('address').focus(); return; }
+
+            // URL 체크
+            if(APPS_SCRIPT_URL === "https://script.google.com/macros/s/AKfycbyqUs88wf40nop6EVoefB6BSpV_SuqWMLaylbipb0i36RdCu1UAd-zZlFp-0m4FekhZ4g/exec" || APPS_SCRIPT_URL === "") {
+                alert("관리자 설정 오류: 서버 주소(URL)가 설정되지 않았습니다.");
+                return;
+            }
+
+            document.getElementById('loading').classList.remove('hidden');
+
+            const extension = document.querySelector('input[name="extension"]:checked').value;
+            const memo = document.getElementById('memo').value;
+            
+            const windowCards = document.querySelectorAll('.window-card');
+            const windowsData = [];
+            let isLocationValid = true;
+
+            // 카드 루프 (비동기 처리 필요)
+            for (const card of windowCards) {
+                const selectVal = card.querySelector('.loc-select').value;
+                let finalLocation = selectVal;
+                
+                // 기타 입력값 처리
+                if(selectVal === "기타(직접입력)") {
+                    const etcVal = card.querySelector(`input[id^="etc-"]`).value;
+                    if(!etcVal) {
+                        alert("기타 위치 명칭을 입력해주세요.");
+                        card.querySelector(`input[id^="etc-"]`).focus();
+                        isLocationValid = false;
+                        break; 
+                    }
+                    finalLocation = etcVal;
+                }
+
+                const width = card.querySelector('.width-input').value;
+                const height = card.querySelector('.height-input').value;
+                const fileInput = card.querySelector('.photo-input');
+                
+                let photoData = null;
+                let photoName = null;
+                let photoMimeType = null;
+
+                // 사진이 있다면 Base64로 변환
+                if (fileInput.files.length > 0) {
+                    try {
+                        const file = fileInput.files[0];
+                        // 용량 체크 (예: 10MB 제한)
+                        if(file.size > 10 * 1024 * 1024) {
+                            alert("사진 파일은 장당 10MB 이하여야 합니다.");
+                            document.getElementById('loading').classList.add('hidden');
+                            return;
+                        }
+                        photoData = await fileToBase64(file);
+                        photoName = file.name;
+                        photoMimeType = file.type;
+                    } catch (e) {
+                        console.error("Image Error", e);
+                    }
+                }
+
+                windowsData.push({
+                    location: finalLocation,
+                    width: width,
+                    height: height,
+                    photoData: photoData,
+                    photoName: photoName,
+                    photoMimeType: photoMimeType
+                });
+            }
+
+            if(!isLocationValid) {
+                document.getElementById('loading').classList.add('hidden');
+                return;
+            }
+
+            const payload = {
+                customerName: name,
+                customerPhone: phone,
+                address: address,
+                extension: extension,
+                memo: memo,
+                windows: windowsData
+            };
+
+            // 서버 전송
+            fetch(APPS_SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loading').classList.add('hidden');
+                if(data.result === 'success') {
+                    alert("✅ 견적 요청이 완료되었습니다!\n빠른 시일 내에 연락드리겠습니다.");
+                    window.location.reload();
+                } else {
+                    alert("오류가 발생했습니다: " + (data.error || "알 수 없는 오류"));
+                }
+            })
+            .catch(error => {
+                document.getElementById('loading').classList.add('hidden');
+                console.error('Error:', error);
+                alert("전송 중 네트워크 문제가 발생했습니다.\n잠시 후 다시 시도해주세요.");
+            });
+        }
+    </script>
+</body>
+</html>
