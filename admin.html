@@ -2,187 +2,172 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>KCC GLASS 도면 설계 시스템 (Pro)</title>
+    <title>KCC 도면 설계</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
-    <style>
-        body { font-family: 'Pretendard', sans-serif; overflow: hidden; user-select: none; }
-        .canvas-btn { @apply bg-white text-gray-700 p-2 rounded shadow border hover:bg-gray-50 active:bg-gray-100 transition; }
-    </style>
+    <style>body { font-family: 'Pretendard'; overflow: hidden; user-select: none; }</style>
 </head>
 <body class="bg-gray-100 h-screen flex flex-col">
 
     <header class="bg-slate-900 text-white h-14 flex items-center justify-between px-6 shadow-md z-20">
-        <h1 class="text-lg font-bold tracking-wider">KCC GLASS | 도면 설계 Pro</h1>
-        <div class="flex gap-3">
-            <button onclick="loadData()" class="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded text-xs font-bold transition flex items-center gap-2">🔄 데이터 새로고침</button>
-            <button onclick="downloadImage()" class="bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 rounded text-xs font-bold transition flex items-center gap-2">💾 도면 저장</button>
+        <h1 class="font-bold">KCC GLASS Admin</h1>
+        <div class="flex gap-2">
+            <button onclick="loadData()" class="bg-blue-600 px-3 py-1 rounded text-sm font-bold">🔄 새로고침</button>
+            <button onclick="downloadImage()" class="bg-green-600 px-3 py-1 rounded text-sm font-bold">💾 도면저장</button>
         </div>
     </header>
 
     <div class="flex flex-1 overflow-hidden">
         <div class="w-80 bg-white border-r flex flex-col z-10 shadow-xl">
-            <div class="p-4 border-b bg-gray-50"><h2 class="font-bold text-gray-800">📋 고객 접수 현황</h2></div>
-            <div id="customerList" class="flex-1 overflow-y-auto p-2 space-y-2 bg-gray-50">
-                <div class="text-center text-gray-400 mt-10 text-xs">데이터 로딩 필요</div>
-            </div>
+            <div id="customerList" class="flex-1 overflow-y-auto p-2 space-y-2 bg-gray-50"></div>
             <div class="p-4 border-t bg-white">
-                <label class="block text-xs font-bold text-gray-700 mb-2">도면 이미지 업로드</label>
-                <input type="file" id="bgUpload" accept="image/*" class="block w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded border file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"/>
+                <p class="text-xs font-bold mb-2">도면 업로드</p>
+                <input type="file" id="bgUpload" accept="image/*" class="w-full text-xs">
             </div>
         </div>
 
-        <div class="flex-1 bg-gray-200 relative overflow-hidden flex items-center justify-center">
-            <canvas id="canvas" class="bg-gray-300 shadow-2xl cursor-crosshair"></canvas>
-            <div class="absolute bottom-6 right-6 flex flex-col gap-2">
-                <button onclick="resetView()" class="canvas-btn">↺</button>
-                <button onclick="zoom(0.1)" class="canvas-btn">➕</button>
-                <button onclick="zoom(-0.1)" class="canvas-btn">➖</button>
+        <div class="flex-1 bg-gray-200 relative flex items-center justify-center overflow-hidden">
+            <canvas id="canvas" class="bg-gray-300 shadow-2xl"></canvas>
+            <div class="absolute bottom-5 right-5 flex flex-col gap-2">
+                <button onclick="resetView()" class="bg-white p-2 rounded shadow">↺</button>
+                <button onclick="zoom(0.1)" class="bg-white p-2 rounded shadow">➕</button>
+                <button onclick="zoom(-0.1)" class="bg-white p-2 rounded shadow">➖</button>
             </div>
-            <div id="placeholder" class="absolute pointer-events-none text-center opacity-50">
-                <p class="text-4xl mb-2">🏗️</p><p class="font-bold text-gray-600">도면 이미지를 업로드해주세요</p>
-            </div>
+            <div id="placeholder" class="absolute pointer-events-none text-gray-500 font-bold">도면 이미지를 업로드해주세요</div>
         </div>
     </div>
 
     <script>
-        // ★ 배포된 Apps Script URL 입력 ★
-        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby68x8slMzZ5tbmtwbBqKCvjTUaPxGzWy_21rYpP74Ty86gHHadqZVnAyu1w-JhnwC-Mg/exec"; 
-        
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+        // ▼▼▼ 여기에 URL 붙여넣기 ▼▼▼
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwjmu1V8U7qdtGq-o6Qed23SdNAUvGQ8udLKo5BOmgz1DLu7uOHGHUv7K_-3MvtEpKR/exec"; 
+
         let customers = {}, items = [], bgImage = new Image(), isBgLoaded = false;
         let scale = 1, panX = 0, panY = 0;
-        let dragTarget = null, selectedItemIndex = -1, lastMouseX, lastMouseY;
+        let dragTarget = null, selectedIdx = -1, lastX, lastY;
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
 
-        function resizeCanvas() {
-            canvas.width = canvas.parentElement.clientWidth;
-            canvas.height = canvas.parentElement.clientHeight;
-            draw();
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
+        function resize() { canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; draw(); }
+        window.addEventListener('resize', resize); resize();
 
-        // [기능] 전화번호 하이픈 포맷팅 함수
-        function formatPhoneNumber(str) {
-            if (!str) return "";
-            return str.replace(/^(\d{2,3})(\d{3,4})(\d{4})$/, `$1-$2-$3`);
-        }
-
+        // ★★★ 핵심: 데이터 불러오기 수정됨 ★★★
         function loadData() {
             const list = document.getElementById('customerList');
-            list.innerHTML = '<div class="text-center py-4"><div class="animate-spin inline-block w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full"></div></div>';
+            list.innerHTML = '로딩중...';
             
+            // 단순 GET 요청 (헤더 없음)
             fetch(`${APPS_SCRIPT_URL}?op=read`)
                 .then(res => res.json())
-                .then(data => { customers = data; renderCustomerList(); })
-                .catch(err => { list.innerHTML = '<p class="text-center text-red-500 text-xs mt-4">데이터 로드 실패</p>'; });
+                .then(data => {
+                    customers = data;
+                    renderList();
+                })
+                .catch(err => {
+                    list.innerHTML = `<div class="text-red-500 text-xs p-4">로드 실패<br>URL과 권한을 확인하세요.<br><br>에러: ${err}</div>`;
+                });
         }
 
-        function renderCustomerList() {
-            const container = document.getElementById('customerList');
-            container.innerHTML = "";
+        function renderList() {
+            const list = document.getElementById('customerList');
+            list.innerHTML = '';
             const ids = Object.keys(customers).sort().reverse();
-            if(ids.length === 0) { container.innerHTML = '<p class="text-center text-gray-400 text-xs mt-4">데이터 없음</p>'; return; }
+            if(ids.length === 0) { list.innerHTML = '데이터 없음'; return; }
 
             ids.forEach(id => {
                 const c = customers[id];
-                // 여기서 전화번호 포맷팅 적용
-                const formattedPhone = formatPhoneNumber(c.phone);
-
                 const div = document.createElement('div');
-                div.className = "p-3 mb-2 bg-white border rounded hover:border-blue-500 cursor-pointer shadow-sm transition group";
-                div.onclick = () => loadCustomerToCanvas(id);
+                div.className = "p-3 bg-white border rounded cursor-pointer hover:border-blue-500";
+                div.onclick = () => loadToCanvas(id);
                 div.innerHTML = `
-                    <div class="flex justify-between items-center mb-1">
-                        <span class="font-bold text-sm text-gray-800">${c.name}</span>
-                        <span class="text-[10px] text-gray-500">${formattedPhone}</span>
-                    </div>
-                    <div class="text-xs text-gray-500 truncate mb-1">📍 ${c.address}</div>
-                    <div class="flex justify-between items-end">
-                        <span class="text-[10px] text-gray-400">${new Date(c.timestamp).toLocaleDateString()}</span>
-                        <span class="text-[10px] text-blue-600 font-bold bg-blue-50 px-1.5 py-0.5 rounded">창호 ${c.windows.length}개</span>
-                    </div>
+                    <div class="font-bold text-sm">${c.name} <span class="text-gray-400 font-normal">${c.phone}</span></div>
+                    <div class="text-xs text-gray-500 truncate">${c.address}</div>
+                    <div class="text-xs text-blue-600 font-bold mt-1">창호 ${c.windows.length}개</div>
                 `;
-                container.appendChild(div);
+                list.appendChild(div);
             });
         }
 
-        function loadCustomerToCanvas(id) {
+        function loadToCanvas(id) {
             const data = customers[id];
-            items = data.windows.map((win, idx) => ({
-                id: idx, location: win.location, size: `${win.width} x ${win.height}`,
-                dotX: isBgLoaded ? bgImage.width / 2 : 400, dotY: isBgLoaded ? bgImage.height / 2 : 300,
-                boxX: 50 + (idx % 3) * 220, boxY: 50 + Math.floor(idx / 3) * 100, boxW: 200, boxH: 70, color: "#1e3a8a"
+            items = data.windows.map((w, i) => ({
+                id: i, loc: w.location, size: `${w.width}x${w.height}`,
+                dx: isBgLoaded ? bgImage.width/2 : 400, dy: isBgLoaded ? bgImage.height/2 : 300,
+                bx: 50 + (i%3)*220, by: 50 + Math.floor(i/3)*100, bw: 200, bh: 70, col: "#1e3a8a"
             }));
-            alert(`[${data.name}] 님 데이터를 불러왔습니다.\n도면 위에 빨간 점을 배치하세요.`);
+            alert(`${data.name}님 데이터 로드 완료`);
             draw();
         }
 
-        document.getElementById('bgUpload').addEventListener('change', (e) => {
-            const reader = new FileReader();
-            reader.onload = (evt) => {
-                bgImage.src = evt.target.result;
-                bgImage.onload = () => { isBgLoaded = true; document.getElementById('placeholder').style.display = 'none'; resetView(); }
-            }
-            reader.readAsDataURL(e.target.files[0]);
+        document.getElementById('bgUpload').addEventListener('change', e => {
+            const rd = new FileReader();
+            rd.onload = ev => { bgImage.src = ev.target.result; bgImage.onload = () => { isBgLoaded=true; document.getElementById('placeholder').style.display='none'; resetView(); }};
+            rd.readAsDataURL(e.target.files[0]);
         });
 
-        function resetView() { scale = 1; panX = isBgLoaded ? (canvas.width - bgImage.width) / 2 : 0; panY = isBgLoaded ? (canvas.height - bgImage.height) / 2 : 0; draw(); }
-        function zoom(amt) { const newScale = Math.max(0.2, Math.min(5, scale + amt)); const cx = canvas.width/2, cy = canvas.height/2; panX = cx - (cx - panX)*(newScale/scale); panY = cy - (cy - panY)*(newScale/scale); scale = newScale; draw(); }
+        function resetView() { scale=1; panX=isBgLoaded?(canvas.width-bgImage.width)/2:0; panY=isBgLoaded?(canvas.height-bgImage.height)/2:0; draw(); }
+        function zoom(v) { scale = Math.max(0.2, Math.min(5, scale+v)); draw(); }
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "#e5e7eb"; ctx.fillRect(0,0, canvas.width, canvas.height);
-            
             ctx.save(); ctx.translate(panX, panY); ctx.scale(scale, scale);
-            if (isBgLoaded) { ctx.shadowColor = "rgba(0,0,0,0.2)"; ctx.shadowBlur = 20; ctx.drawImage(bgImage, 0, 0); ctx.shadowBlur = 0; }
-            items.forEach(it => { ctx.beginPath(); ctx.arc(it.dotX, it.dotY, 8/scale, 0, Math.PI*2); ctx.fillStyle = "rgba(239, 68, 68, 0.9)"; ctx.fill(); ctx.strokeStyle = "white"; ctx.lineWidth = 2/scale; ctx.stroke(); });
+            if(isBgLoaded) ctx.drawImage(bgImage, 0, 0);
+            
+            // 점 그리기
+            items.forEach(it => {
+                ctx.beginPath(); ctx.arc(it.dx, it.dy, 8/scale, 0, Math.PI*2);
+                ctx.fillStyle = "red"; ctx.fill(); ctx.stroke();
+            });
             ctx.restore();
 
+            // 박스 그리기
             items.forEach(it => {
-                const dx = it.dotX * scale + panX, dy = it.dotY * scale + panY;
-                ctx.beginPath(); ctx.moveTo(dx, dy); ctx.lineTo(it.boxX + it.boxW/2, it.boxY + it.boxH/2);
-                ctx.strokeStyle = it.color; ctx.lineWidth = 2; ctx.setLineDash([5, 3]); ctx.stroke(); ctx.setLineDash([]);
+                // 선 연결
+                const sx = it.dx*scale+panX, sy = it.dy*scale+panY;
+                ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(it.bx+it.bw/2, it.by+it.bh/2);
+                ctx.strokeStyle = it.col; ctx.setLineDash([5,3]); ctx.stroke(); ctx.setLineDash([]);
+
+                // 박스
+                ctx.fillStyle="white"; ctx.fillRect(it.bx, it.by, it.bw, it.bh);
+                ctx.strokeStyle= (selectedIdx===it.id)?"red":it.col; ctx.strokeRect(it.bx, it.by, it.bw, it.bh);
                 
-                ctx.shadowColor = "rgba(0,0,0,0.2)"; ctx.shadowBlur = 6; ctx.shadowOffsetY = 3;
-                ctx.fillStyle = "white"; ctx.beginPath(); ctx.roundRect(it.boxX, it.boxY, it.boxW, it.boxH, 8); ctx.fill();
-                ctx.shadowColor = "transparent"; ctx.lineWidth = 2; ctx.strokeStyle = (selectedItemIndex === it.id) ? "#ef4444" : it.color; ctx.stroke();
-                
-                ctx.fillStyle = it.color; ctx.font = "bold 14px Pretendard"; ctx.fillText(it.location, it.boxX + 12, it.boxY + 25);
-                ctx.fillStyle = "#6b7280"; ctx.font = "12px Pretendard"; ctx.fillText(it.size, it.boxX + 12, it.boxY + 45);
+                ctx.fillStyle=it.col; ctx.font="bold 14px sans-serif"; ctx.fillText(it.loc, it.bx+10, it.by+25);
+                ctx.fillStyle="#666"; ctx.font="12px sans-serif"; ctx.fillText(it.size, it.bx+10, it.by+45);
             });
-            ctx.fillStyle = "rgba(30, 58, 138, 0.8)"; ctx.font = "bold 16px Pretendard"; ctx.fillText("KCC GLASS | SMART PLAN", 20, canvas.height - 20);
         }
 
-        function getMousePos(e) { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
-        function hitTest(x, y) {
-            for (let i = items.length - 1; i >= 0; i--) { if (x>=items[i].boxX && x<=items[i].boxX+items[i].boxW && y>=items[i].boxY && y<=items[i].boxY+items[i].boxH) return {type:'box', index:i}; }
-            for (let i = items.length - 1; i >= 0; i--) { const dx = items[i].dotX*scale+panX, dy = items[i].dotY*scale+panY; if (Math.sqrt((x-dx)**2+(y-dy)**2)<15) return {type:'dot', index:i}; }
-            return null;
-        }
-
+        // 마우스 이벤트
+        function getPos(e) { const r = canvas.getBoundingClientRect(); return { x: e.clientX-r.left, y: e.clientY-r.top }; }
         canvas.addEventListener('mousedown', e => {
-            const p = getMousePos(e), hit = hitTest(p.x, p.y); lastMouseX = p.x; lastMouseY = p.y;
-            if (hit) { dragTarget = hit.type; selectedItemIndex = items[hit.index].id; items.push(items.splice(hit.index, 1)[0]); } 
-            else { dragTarget = 'map'; selectedItemIndex = -1; } draw();
+            const p = getPos(e); lastX=p.x; lastY=p.y;
+            // 박스 체크
+            for(let i=items.length-1; i>=0; i--) {
+                const it=items[i];
+                if(p.x>=it.bx && p.x<=it.bx+it.bw && p.y>=it.by && p.y<=it.by+it.bh) { dragTarget='box'; selectedIdx=it.id; items.push(items.splice(i,1)[0]); draw(); return; }
+            }
+            // 점 체크
+            for(let i=items.length-1; i>=0; i--) {
+                const it=items[i], dx=it.dx*scale+panX, dy=it.dy*scale+panY;
+                if(Math.sqrt((p.x-dx)**2+(p.y-dy)**2) < 15) { dragTarget='dot'; selectedIdx=it.id; items.push(items.splice(i,1)[0]); draw(); return; }
+            }
+            dragTarget='map'; selectedIdx=-1;
         });
+
         canvas.addEventListener('mousemove', e => {
-            if (!dragTarget) return;
-            const p = getMousePos(e), dx = p.x - lastMouseX, dy = p.y - lastMouseY; const cur = items[items.length-1];
-            if (dragTarget === 'map') { panX += dx; panY += dy; } else if (dragTarget === 'box') { cur.boxX += dx; cur.boxY += dy; } else if (dragTarget === 'dot') { cur.dotX += dx/scale; cur.dotY += dy/scale; }
-            lastMouseX = p.x; lastMouseY = p.y; draw();
+            if(!dragTarget) return;
+            const p = getPos(e), dx = p.x-lastX, dy = p.y-lastY;
+            const cur = items[items.length-1];
+            if(dragTarget==='map') { panX+=dx; panY+=dy; }
+            else if(dragTarget==='box') { cur.bx+=dx; cur.by+=dy; }
+            else if(dragTarget==='dot') { cur.dx+=dx/scale; cur.dy+=dy/scale; }
+            lastX=p.x; lastY=p.y; draw();
         });
-        canvas.addEventListener('mouseup', () => dragTarget = null);
-        canvas.addEventListener('wheel', e => { e.preventDefault(); zoom(e.deltaY > 0 ? -0.1 : 0.1); }, {passive:false});
+
+        canvas.addEventListener('mouseup', () => dragTarget=null);
+        canvas.addEventListener('wheel', e => { e.preventDefault(); zoom(e.deltaY>0?-0.1:0.1); }, {passive:false});
 
         function downloadImage() { 
-            if(!isBgLoaded && items.length===0) return alert("저장할 내용이 없습니다.");
-            const link = document.createElement('a'); link.download = `KCC_설계도면_${Date.now()}.png`; link.href = canvas.toDataURL(); link.click(); 
+            const a = document.createElement('a'); a.download='도면.png'; a.href=canvas.toDataURL(); a.click(); 
         }
     </script>
 </body>
-
 </html>
-
-
